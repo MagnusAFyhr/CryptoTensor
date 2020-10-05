@@ -102,7 +102,10 @@ class DataBook:
         for timeperiod in _FIB_PERIODS:
             print(f"Processing timeperiod : {timeperiod}")
             dilated_df = dilator.dilate_data(self._init_data.copy(), timeperiod)
-            full_df = pandas.merge(full_df, dilated_df, on='Unix Timestamp')
+            if full_df.empty:
+                full_df = dilated_df.copy()
+            else:
+                full_df = pandas.merge(full_df, dilated_df, on='Unix Timestamp')
 
         return full_df
 

@@ -29,7 +29,7 @@ def dilate_data(dataframe: pandas.DataFrame, timeperiod: int = 1) -> pandas.Data
     updated_column_names = list([])
     column_names = list(dilated_df.columns.values)
     for column_name in column_names:
-        if column_name is not "Unix Timestamp":
+        if column_name != "Unix Timestamp":
             updated_column_names.append(f"[{timeperiod}]{column_name}")
         else:
             updated_column_names.append("Unix Timestamp")
