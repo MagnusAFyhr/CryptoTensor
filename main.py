@@ -6,17 +6,14 @@ docstring:
 
 import pandas
 
-import data.driver.databook as databook
+import data.driver.data_builder as builder
 
 """
 
 """
 
-db = databook.DataBook("TEST", "ETH", "USD")
+db = builder.DataBuilder("TEST", "ETH", "USD")
 
 df = db.read_data()
 with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
     print(df)
-
-# saving the dataframe
-df.to_csv("test_data.csv")

@@ -16,10 +16,11 @@ DataBook:
 import os
 
 import pandas
+import time
 
 import data.driver.data_dilator as dilator
 
-_INIT_DATA_PATH = os.getcwd() + "/data/library/{}"
+_INIT_DATA_PATH = os.getcwd() + "/data/library/input/{}"
 _INIT_DATA_TITLE = "{}_{}_{}.csv"
 
 _REQUIRED_CSV_FIELDS = [
@@ -35,21 +36,26 @@ _REQUIRED_CSV_FIELDS = [
 
 _FIB_PERIODS = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377]
 
+"""
+ REMOVE ALL NANS FROM DATAFRAME
 
-class DataBook:
+"""
 
+
+class DataBuilder:
     """
     Initializes elaborated table data from locally stored historical, OHLCV csv files
     """
+
     def __init__(self, exchange: str, base_coin: str, quote_coin: str, use_hourly_data=True):
 
         self._exchange = exchange
         self._base_coin = base_coin
         self._quote_coin = quote_coin
         self._symbol = base_coin + quote_coin
-        self._timeperiod = "1d"
-        if use_hourly_data:
-            self._timeperiod = "1h"
+        self._timeperiod = "1h"
+        if not use_hourly_data:
+            self._timeperiod = "1d"
 
         # fetch initial data
         self._init_data = self._fetch_data()
@@ -57,12 +63,17 @@ class DataBook:
         # populate with technical analysis
         self._full_data = self._load_data()
 
-        # divide into training and testing sets
-        self._train_data, self._test_data = 0, 0  # self._parse_data()
+        # save data to csv in library
+        self._full_data.to_csv(_INIT_DATA_PATH.format(f"{self._exchange}_{self._symbol}_{self._timeperiod}_full.csv"),
+                               index=False)
 
         # verify initialization
+        self._verify()
 
-        pass
+        # provide some feedback
+
+        # exit
+        exit(0)
 
     def _fetch_data(self) -> pandas.DataFrame:
         """ Builds and populates a pandas data frame using local ticker CSV data. """
@@ -99,20 +110,37 @@ class DataBook:
         # make empty data frame
         full_df = pandas.DataFrame()
 
+        # set up some timing mechanisms
+        start = time.time_ns()
+        buffer = 0
+        index = 0
+        length = float(len(_FIB_PERIODS))
+
         for timeperiod in _FIB_PERIODS:
-            print(f"Processing timeperiod : {timeperiod}")
             dilated_df = dilator.dilate_data(self._init_data.copy(), timeperiod)
             if full_df.empty:
                 full_df = dilated_df.copy()
             else:
+                del dilated_df[f"[{timeperiod}]Date"]
+                del dilated_df[f"[{timeperiod}]Symbol"]
                 full_df = pandas.merge(full_df, dilated_df, on='Unix Timestamp')
 
-        return full_df
+            # update timer
+            index += 1
+            end = time.time_ns()
+            elapsed = end - start
+            elapsed /= pow(10, 9)
+            if elapsed - buffer >= 1:
+                buffer += 1
+                percent_done = (index / length)
+                time_left = round(elapsed / percent_done, 2)
+                print(f"Estimated {time_left} seconds until completion;"
+                      f"processed {index}/{length} timeperiods.")
 
-    def _parse_data(self) -> (pandas.DataFrame, pandas.DataFrame):
-        """ Split full data into a training set and a testing set;
-        to be used by the machine learning algorithm. """
-        return
+        # delete NaN values
+        full_df = full_df.dropna(axis=0, how='any')
+
+        return full_df
 
     def _verify(self):
         """ Verify the """
@@ -121,5 +149,6 @@ class DataBook:
     """
     Return copy of data
     """
+
     def read_data(self):
         return self._full_data

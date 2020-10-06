@@ -7,6 +7,7 @@ docstring: expands a single OHLCV data set into fibonacci time periods (1,2,3,5.
 # imports
 
 import pandas
+import time
 
 import data.driver.data_calculator as calc
 
@@ -62,13 +63,12 @@ def _form_new_ohlcv(dataframe: pandas.DataFrame, timeperiod: int) -> pandas.Data
         'Volume'])
 
     # for each row of original data
+    start = time.time_ns()
+    buffer = 0
     index = 0
+    length = len(dataframe.index)
     for _, row in dataframe.iterrows():
         temp_df = temp_df.append(row, ignore_index=True)
-
-        if index % 100 == 0:
-            print(index)
-        index += 1
 
         if len(temp_df.index) == timeperiod:
             #       perform calculations...
@@ -109,5 +109,16 @@ def _form_new_ohlcv(dataframe: pandas.DataFrame, timeperiod: int) -> pandas.Data
                 'Volume': None,
             }
             new_df = new_df.append(empty_row_data, ignore_index=True)
+
+        # provide runtime updates
+        current = time.time_ns()
+        elapsed = current - start
+        elapsed /= pow(10, 9)
+        if elapsed - buffer >= 1:
+            buffer += 1
+            percent_done = round((index / length) * 100, 2)
+            print(f"\t{percent_done}% complete with this timeperiod({timeperiod})...")
+
+        index += 1
 
     return new_df
